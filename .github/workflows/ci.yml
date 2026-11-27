@@ -1,0 +1,26 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kustomize overlays build
+        run: |
+          for d in manifests/vllm/base manifests/vllm/overlays/cpu manifests/vllm/overlays/cpu-local manifests/vllm/overlays/cpu-local-llmd guard/k8s; do
+            echo "== $d"; kubectl kustomize "$d" > /dev/null
+          done
+      - name: Plain YAML parses
+        run: |
+          pip install pyyaml
+          python3 - <<'PY'
+          import glob, yaml
+          files = glob.glob("manifests/llm-d/**/*.yaml", recursive=True) + ["kind/kind-config.yaml"]
+          for f in files:
+              list(yaml.safe_load_all(open(f)))
+              print("ok", f)
+          PY
+      - name: Python compiles
+        run: python3 -m py_compile guard/app.py guard/check_prompts.py loadtest/prefix_bench.py scripts/make_test_pickle.py
+      - name: Makefile sanity
+        run: make help && make -n vllm-up && make -n bench-direct

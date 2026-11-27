@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# CPU overlay that serves a model copied onto the kind nodes (make model-download model-copy).
+# Avoids any Hugging Face download from inside the cluster.
+resources:
+  - ../cpu
+patches:
+  - target:
+      kind: Deployment
+      name: vllm
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value:
+          name: models
+          hostPath: { path: /opt/models, type: Directory }
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - vllm serve /models/qwen --served-model-name Qwen/Qwen2.5-0.5B-Instruct --host 0.0.0.0 --port 8000 --enable-prefix-caching --max-model-len 4096
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: { name: HF_HUB_OFFLINE, value: "1" }
+  # LOCAL ONLY: baseline Pod Security forbids hostPath volumes, which this overlay needs to read the
+  # model copied onto the kind nodes. A cloud setup would read the model from object storage instead and keep baseline.
+  - target:
+      kind: Namespace
+      name: llm
+    patch: |-
+      - op: replace
+        path: /metadata/labels/pod-security.kubernetes.io~1enforce
+        value: privileged

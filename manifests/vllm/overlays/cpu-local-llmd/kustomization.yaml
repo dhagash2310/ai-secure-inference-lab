@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# 2 CPU vLLM replicas for the llm-d router, sized for a 16GB Docker Desktop VM.
+resources:
+  - ../cpu-local
+patches:
+  - target:
+      kind: Deployment
+      name: vllm
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      # request 4Gi, allow bursts to 7Gi (torch.compile at startup peaks above 4Gi)
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: { cpu: "2", memory: 4Gi }
+          limits: { memory: 7Gi }
+      # engine-type label lets the llm-d router know how to read vLLM metrics
+      - op: add
+        path: /spec/template/metadata/labels/inference.networking.k8s.io~1engine-type
+        value: vllm
+      # no surge pod during rollouts: a third replica would not fit in memory
+      - op: add
+        path: /spec/strategy
+        value: { type: Recreate }
+      # CPU startup (load + torch.compile) with two pods compiling at once can exceed the base 15 min budget
+      - op: replace
+        path: /spec/template/spec/containers/0/startupProbe/failureThreshold
+        value: 240
+      # keep the torch.compile cache on the node's disk so restarts skip the ~8 min compile
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value: { name: vllm-cache, hostPath: { path: /opt/vllm-cache, type: DirectoryOrCreate } }
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value: { name: vllm-cache, mountPath: /root/.cache/vllm }
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints
+        value:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels: { app.kubernetes.io/name: vllm }

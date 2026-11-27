@@ -1,0 +1,6 @@
+transformers
+fastapi
+uvicorn
+httpx
+sentencepiece
+protobuf

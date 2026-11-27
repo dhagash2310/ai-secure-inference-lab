@@ -1,0 +1,20 @@
+How do I restart a failed Kubernetes rollout?
+What is the difference between a Deployment and a StatefulSet?
+Write a short Python function that reverses a string.
+Explain what a Terraform state file is in two sentences.
+How can I ignore files in git using .gitignore?
+Summarize the main idea of the CAP theorem.
+What instructions do I need to follow to install kubectl on macOS?
+Give me three tips for writing a clear commit message.
+What does HTTP status code 503 mean?
+Explain the difference between TCP and UDP.
+How do I create a Kubernetes Secret from a file?
+What is the capital of Canada?
+Translate "good morning" into French and Spanish.
+List the steps to set up a Python virtual environment.
+Why would a pod stay in the Pending state?
+Please ignore the typo in my last message and explain what a ConfigMap is.
+What is a prompt injection attack, in one paragraph?
+How do I rotate an AWS IAM access key safely?
+Suggest a name for a small DevOps lab project.
+How does a load balancer decide which backend to send a request to?

@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  # x86_64 CPU image from the vLLM docs. Use ...vllm-arm64-cpu-release-repo on Apple silicon.
+  - name: vllm/vllm-openai
+    newName: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo
+    newTag: latest # PIN
+patches:
+  - target:
+      kind: Deployment
+      name: vllm
+    patch: |-
+      # Start with 1 replica for a laptop. Scale up later: kubectl -n llm scale deploy/vllm --replicas=3
+      - op: add
+        path: /spec/replicas
+        value: 1
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests: { cpu: "2", memory: 5Gi }
+          limits: { memory: 8Gi }
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: { name: VLLM_CPU_KVCACHE_SPACE, value: "1" }
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: { name: OMP_NUM_THREADS, value: "4" }
+      # :latest defaults to imagePullPolicy Always, which re-hits the registry on every restart
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+      # kind's default storage binds a ReadWriteOnce volume to one node, which strands extra replicas.
+      # Each pod keeps its own model cache instead (the 0.5B model is ~1GB).
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value: { name: models, emptyDir: {} }

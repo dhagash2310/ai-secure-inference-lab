@@ -1,0 +1,14 @@
+# local state and big downloads
+.venv/
+model-cache/
+guard/wheels/*
+!guard/wheels/.gitkeep
+redteam/reports/*
+!redteam/reports/.gitkeep
+evil-test.pkl
+# OS / editor / python
+.DS_Store
+__pycache__/
+*.pyc
+# parked work for a later release
+_wip-cloud-and-monitoring/
